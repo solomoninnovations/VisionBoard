@@ -1,88 +1,141 @@
-//
-//  ContentView.swift
-//  VisionBoard
-//
-//  Created by Austin Firestone on 2/4/25.
-//
-
 import SwiftUI
 import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+        sortDescriptors: [NSSortDescriptor(keyPath: \Dream.title, ascending: true)],
+        animation: .default
+    ) private var dreams: FetchedResults<Dream>
+    
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    // Controls presentation of the add/edit sheet.
+    @State private var showDreamSheet = false
+    @State private var selectedDream: Dream? = nil
+    
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        #if os(macOS)
+        // macOS: A single view without a sidebar.
+        VStack {
+            headerView
+            gridView
+        }
+        .frame(minWidth: 600, minHeight: 400)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button(action: { createNewDream() }) {
+                    Label("Add Dream", systemImage: "plus")
+                }
+            }
+        }
+        .sheet(isPresented: $showDreamSheet) {
+            if let dream = selectedDream {
+                DreamSheetView(dream: dream, isPresented: $showDreamSheet)
+            }
+        }
+        #else
+        // iOS/iPadOS: Use NavigationStack.
+        NavigationStack {
+            gridView
+                .navigationTitle("Vision Board")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: { createNewDream() }) {
+                            Label("Add Dream", systemImage: "plus")
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                .sheet(isPresented: $showDreamSheet) {
+                    if let dream = selectedDream {
+                        DreamSheetView(dream: dream, isPresented: $showDreamSheet)
                     }
                 }
+        }
+        #endif
+    }
+    
+    // A header for macOS.
+    private var headerView: some View {
+        Text("Vision Board")
+            .font(.largeTitle)
+            .padding()
+    }
+    
+    // The main grid of Dream cards.
+    private var gridView: some View {
+        GeometryReader { geo in
+            ScrollView {
+                #if os(macOS)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 16)], spacing: 16) {
+                    ForEach(dreams) { dream in
+                        DreamCardView(dream: dream)
+                            .frame(height: 220)
+                            .contextMenu {
+                                Button("Edit") { editDream(dream) }
+                                Button(role: .destructive) { deleteDream(dream) } label: {
+                                    Text("Delete")
+                                }
+                            }
+                    }
+                }
+                .padding()
+                #else
+                // iOS: Choose one column (iPhone) or two columns (iPad) based on available width.
+                let columns = gridColumns(for: geo.size)
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(dreams) { dream in
+                        DreamCardView(dream: dream)
+                            .aspectRatio(3/4, contentMode: .fit)
+                            .contextMenu {
+                                Button("Edit") { editDream(dream) }
+                                Button(role: .destructive) { deleteDream(dream) } label: {
+                                    Text("Delete")
+                                }
+                            }
+                    }
+                }
+                .padding()
+                #endif
             }
-            Text("Select an item")
         }
     }
-
-    private func addItem() {
+    
+    #if os(iOS)
+    private func gridColumns(for size: CGSize) -> [GridItem] {
+        if size.width < 600 {
+            return [GridItem(.flexible())]
+        } else {
+            return [GridItem(.flexible()), GridItem(.flexible())]
+        }
+    }
+    #endif
+    
+    // MARK: - Actions
+    private func createNewDream() {
+        let newDream = Dream(context: viewContext)
+        newDream.title = ""
+        newDream.desc = ""
+        selectedDream = newDream
+        showDreamSheet = true
+    }
+    
+    private func editDream(_ dream: Dream) {
+        selectedDream = dream
+        showDreamSheet = true
+    }
+    
+    private func deleteDream(_ dream: Dream) {
         withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+            viewContext.delete(dream)
+            saveContext()
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
+    
+    private func saveContext() {
+        do {
+            try viewContext.save()
+        } catch {
+            print("Error saving context: \(error)")
         }
     }
-}
-
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
-
-#Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

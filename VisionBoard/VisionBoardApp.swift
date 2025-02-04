@@ -1,10 +1,3 @@
-//
-//  VisionBoardApp.swift
-//  VisionBoard
-//
-//  Created by Austin Firestone on 2/4/25.
-//
-
 import SwiftUI
 
 @main
