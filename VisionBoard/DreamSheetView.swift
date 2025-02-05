@@ -49,7 +49,7 @@ struct DreamSheetView: View {
                         isPresented = false
                     }
                     Button("Save") {
-                        saveDream()
+                        PersistenceController.shared.saveContext() // ✅ Use centralized save function
                         isPresented = false
                     }
                     .buttonStyle(.borderedProminent)
@@ -140,13 +140,6 @@ struct DreamSheetView: View {
     }
     #endif
     
-    private func saveDream() {
-        do {
-            try viewContext.save()
-        } catch {
-            print("Error saving dream: \(error)")
-        }
-    }
     
     #if os(macOS)
     private func pickImageMac() {
