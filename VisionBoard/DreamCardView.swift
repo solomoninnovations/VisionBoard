@@ -1,7 +1,14 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 struct DreamCardView: View {
     @ObservedObject var dream: Dream
+    let cardWidth: CGFloat
+    private let goldenRatio: CGFloat = 1.618  // height = width * 1.618
+    
+    // Local state for the flip animation
     @State private var isFlipped = false
     
     var body: some View {
@@ -12,23 +19,23 @@ struct DreamCardView: View {
                 backView
             }
         }
+        .frame(width: cardWidth, height: cardWidth * goldenRatio)
+        .cornerRadius(12)
         .shadow(color: Color.gray.opacity(0.4), radius: 4, x: 2, y: 2)
         .onTapGesture {
-            withAnimation(.spring()) { isFlipped.toggle() }
+            withAnimation(.spring()) {
+                isFlipped.toggle()
+            }
         }
-        #if os(iOS)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        #else
-        .cornerRadius(12)
-        #endif
     }
     
-    // The front of the card shows the image and title.
+    // Front view: the image with the title overlaid.
     private var frontView: some View {
         ZStack(alignment: .bottomLeading) {
             backgroundImage
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .scaledToFill()
+                .frame(width: cardWidth, height: cardWidth * goldenRatio)
                 .clipped()
             LinearGradient(gradient: Gradient(colors: [.clear, .black.opacity(0.5)]),
                            startPoint: .center,
@@ -36,11 +43,11 @@ struct DreamCardView: View {
             Text(dream.title ?? "Untitled")
                 .font(.headline)
                 .foregroundColor(.white)
-                .padding()
+                .padding(8)
         }
     }
     
-    // The back shows the description.
+    // Back view: shows the description.
     private var backView: some View {
         ZStack {
             platformBackgroundColor
@@ -48,8 +55,9 @@ struct DreamCardView: View {
                 .font(.body)
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
-                .padding()
+                .padding(8)
         }
+        .frame(width: cardWidth, height: cardWidth * goldenRatio)
     }
     
     // Loads the image from Dream data.
@@ -66,7 +74,7 @@ struct DreamCardView: View {
         return Image(systemName: "photo")
     }
     
-    // A cross‑platform background color for the back of the card.
+    // Cross-platform background color.
     private var platformBackgroundColor: Color {
         #if os(macOS)
         return Color(NSColor.windowBackgroundColor)
@@ -74,10 +82,4 @@ struct DreamCardView: View {
         return Color(.secondarySystemBackground)
         #endif
     }
-    
-    #if os(iOS)
-    private func isPhoneNarrow() -> Bool {
-        UIDevice.current.userInterfaceIdiom == .phone
-    }
-    #endif
 }

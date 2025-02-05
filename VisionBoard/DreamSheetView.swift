@@ -77,8 +77,9 @@ struct DreamSheetView: View {
             if let image = nsImageFromDream {
                 Image(nsImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFill()
                     .frame(height: 150)
+                    .clipped()
                     .cornerRadius(8)
             } else {
                 RoundedRectangle(cornerRadius: 8)
@@ -100,8 +101,9 @@ struct DreamSheetView: View {
             if let uiImage = uiImageFromDream {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFill()
                     .frame(height: 150)
+                    .clipped()
                     .cornerRadius(8)
             } else {
                 RoundedRectangle(cornerRadius: 8)

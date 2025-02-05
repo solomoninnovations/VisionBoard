@@ -9,16 +9,15 @@ struct PersistenceController {
         container = NSPersistentCloudKitContainer(name: "VisionBoard")
         
         if let description = container.persistentStoreDescriptions.first {
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-            // If you have a custom container, uncomment and update the line below:
-            // description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(containerIdentifier: "iCloud.com.yourcompany.yourapp")
+            description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                containerIdentifier: "iCloud.VisionBoard"
+            )
         }
-        
+
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
-        
+
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error loading persistent stores: \(error), \(error.userInfo)")
@@ -26,5 +25,10 @@ struct PersistenceController {
         }
         
         container.viewContext.automaticallyMergesChangesFromParent = true
+        
+        // 🔄 Debugging: Print when CloudKit Sync is triggered
+        NotificationCenter.default.addObserver(forName: .NSPersistentStoreRemoteChange, object: nil, queue: .main) { _ in
+            print("🔄 CloudKit sync triggered! Updating UI.")
+        }
     }
 }
