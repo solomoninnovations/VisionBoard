@@ -7,9 +7,14 @@ import AppKit
 
 struct DreamSheetView: View {
     @ObservedObject var dream: Dream
-    @Binding var isPresented: Bool
+    // --- REMOVED: the external isPresented binding ---
+//    @Binding var isPresented: Bool
+    // ----------------------------------------------------
     
     @Environment(\.managedObjectContext) private var viewContext
+    // --- ADDED: use dismiss from the environment instead ---
+    @Environment(\.dismiss) private var dismiss
+    // ---------------------------------------------------------
     
     // iOS: Photo picker state.
     @State private var showPhotoPicker = false
@@ -42,15 +47,15 @@ struct DreamSheetView: View {
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) {
-                        // Optionally, delete an unsaved dream if its title is empty.
+                        // Optionally delete an unsaved dream if its title is empty.
                         if dream.isInserted && (dream.title ?? "").isEmpty {
                             viewContext.delete(dream)
                         }
-                        isPresented = false
+                        dismiss()  // --- CHANGED: call dismiss() instead of setting isPresented ---
                     }
                     Button("Save") {
-                        PersistenceController.shared.saveContext() // ✅ Use centralized save function
-                        isPresented = false
+                        PersistenceController.shared.saveContext() // centralized save function
+                        dismiss()  // --- CHANGED: call dismiss() here as well ---
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -139,7 +144,6 @@ struct DreamSheetView: View {
         return UIImage(data: data)
     }
     #endif
-    
     
     #if os(macOS)
     private func pickImageMac() {
