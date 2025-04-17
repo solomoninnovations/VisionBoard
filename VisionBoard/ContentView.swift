@@ -19,7 +19,7 @@ struct ContentView: View {
     
     // --- iOS Only: Toggle for single vs. two‑column layout (iPhone only) ---
     #if os(iOS)
-    @State private var isSingleColumn: Bool = false
+    @State private var isSingleColumn: Bool = true
     #endif
     
     var body: some View {
